@@ -9,6 +9,7 @@ if TYPE_CHECKING:
 
     from matplotlib.figure import Figure
 
+import csv
 
 def travel_time(
     distance,
@@ -20,6 +21,13 @@ def travel_time(
 
 
 class Location:
+    def __init__(self, name, region, is_depot, x, y):
+        self.name = name
+        self.region = region
+        self.is_depot = is_depot
+        self.x = x
+        self.y = y
+    
     def __repr__(self):
         """
         Do not edit this function.
@@ -33,16 +41,56 @@ class Location:
         return self.__str__()
 
     def __str__(self):
-        raise NotImplementedError
+        return f"{self.name} ({'Depot' if self.is_depot else 'Settlement'}) in {self.region}"
 
     def distance_to(self, other):
-        raise NotImplementedError
+        distance_squared = (self.x - other.x)**2 + (self.y - other.y)**2
+        return distance_squared ** 0.5
+
+    def __eq__(self, other):
+        return (self.name == other.name) and (self.region == other.region)
 
 
 class Country:
 
-    def travel_time(self, start_location, end_location):
-        raise NotImplementedError
+    @classmethod
+    def from_csv(location_information, filepath):
+        locations = []
+        with open(filepath, 'r') as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                name = row['location']
+                region = row['region']
+                is_depot = row['depot'] == 'TRUE'
+                x = float(row['x'])
+                y = float(row['y'])
+                locations.append(Location(name, region, is_depot, x, y))
+        return location_information(locations)
+
+    def __init__(self, locations):
+        self.locations = locations
+        self.depots = [loc for loc in locations if loc.is_depot]
+        self.settlements = [loc for loc in locations if not loc.is_depot]
+
+    def travel_time(self, start_location, end_location, travel_speed):
+        distance = start_location.distance_to(end_location)
+        r_diff = 1 if start_location.region != end_location.region else 0
+        n_locs = len([Location for location in self.locations if location.region == end_location.region])
+        return ((distance / travel_speed) * (1 + (r_diff * n_locs) / 10)) / 3600
+
+    def nearest_neighbour_path(self, start_depot, speed):
+        path = [start_depot]
+        unvisited = set(self.settlements)
+        current_location = start_depot
+
+        while unvisited:
+            nearest = min(unvisited, key=lambda loc: self.travel_time(current_location, loc, travel_speed=speed))
+            path.append(nearest)
+            unvisited.remove(nearest)
+            current_location = nearest
+
+        path.append(start_depot)  # 返回到起始仓库
+        return path
 
     def fastest_trip_from(
         self,
@@ -54,8 +102,20 @@ class Country:
     def nn_tour(self, starting_depot):
         raise NotImplementedError
 
-    def best_depot_site(self, display):
-        raise NotImplementedError
+    def best_depot_location(self, speed):
+        min_time = float('inf')
+        best_depot = None
+
+        for depot in self.depots:
+            path = self.nearest_neighbour_path(depot, speed)
+            total_time = sum(self.travel_time(path[i], path[i + 1], speed) 
+                             for i in range(len(path) - 1))
+
+            if total_time < min_time:
+                min_time = total_time
+                best_depot = depot
+
+        return best_depot
 
     def plot_country(
         self,
