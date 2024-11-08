@@ -69,8 +69,8 @@ class Country:
 
     def __init__(self, locations):
         self.locations = locations
-        self.depots = [loc for loc in locations if loc.is_depot]
-        self.settlements = [loc for loc in locations if not loc.is_depot]
+        self.depots = [location for location in locations if location.is_depot]
+        self.settlements = [location for location in locations if not location.is_depot]
 
     def travel_time(self, start_location, end_location, travel_speed):
         distance = start_location.distance_to(end_location)
@@ -80,16 +80,16 @@ class Country:
 
     def nearest_neighbour_path(self, start_depot, speed):
         path = [start_depot]
-        unvisited = set(self.settlements)
+        unvisited = list(self.settlements)
         current_location = start_depot
 
         while unvisited:
-            nearest = min(unvisited, key=lambda loc: self.travel_time(current_location, loc, travel_speed=speed))
+            nearest = min(unvisited, key=lambda loc: self.travel_time(current_location, loc, speed))
             path.append(nearest)
             unvisited.remove(nearest)
             current_location = nearest
 
-        path.append(start_depot)  # 返回到起始仓库
+        path.append(start_depot)
         return path
 
     def fastest_trip_from(
