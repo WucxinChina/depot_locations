@@ -15,10 +15,11 @@ def travel_time(
     distance,
     different_regions,
     locations_in_dest_region,
-    speed,
+    speed = 4.75,
 ):
-    raise NotImplementedError
-
+    r_diff = 1 if different_regions else 0
+    travel_time_using = (distance / speed) * (1 + (r_diff * locations_in_dest_region) / 10) / 3600
+    return travel_time_using
 
 class Location:
     def __init__(self, name, region, is_depot, x, y):
@@ -72,11 +73,11 @@ class Country:
         self.depots = [location for location in locations if location.is_depot]
         self.settlements = [location for location in locations if not location.is_depot]
 
-    def travel_time(self, start_location, end_location, travel_speed):
+    def travel_time(self, start_location, end_location):
         distance = start_location.distance_to(end_location)
-        r_diff = 1 if start_location.region != end_location.region else 0
-        n_locs = len([Location for location in self.locations if location.region == end_location.region])
-        return ((distance / travel_speed) * (1 + (r_diff * n_locs) / 10)) / 3600
+        different_regions = start_location.region != end_location.region
+        locations_in_dest_region = len([location for location in self.locations if location.region == end_location.region])
+        return travel_time(distance, different_regions, locations_in_dest_region)
 
     def nearest_neighbour_path(self, start_depot, speed):
         path = [start_depot]
