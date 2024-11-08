@@ -62,7 +62,7 @@ class Country:
             for row in reader:
                 name = row['location']
                 region = row['region']
-                is_depot = row['depot'] == 'TRUE'
+                is_depot = row['depot'].lower() == 'true'
                 x = float(row['x'])
                 y = float(row['y'])
                 locations.append(Location(name, region, is_depot, x, y))
@@ -79,13 +79,13 @@ class Country:
         locations_in_dest_region = len([location for location in self.locations if location.region == end_location.region])
         return travel_time(distance, different_regions, locations_in_dest_region)
 
-    def nearest_neighbour_path(self, start_depot, speed):
+    def nearest_neighbour_path(self, start_depot):
         path = [start_depot]
         unvisited = list(self.settlements)
         current_location = start_depot
 
         while unvisited:
-            nearest = min(unvisited, key=lambda loc: self.travel_time(current_location, loc, speed))
+            nearest = min(unvisited, key=lambda loc: self.travel_time(current_location, loc))
             path.append(nearest)
             unvisited.remove(nearest)
             current_location = nearest
@@ -103,13 +103,13 @@ class Country:
     def nn_tour(self, starting_depot):
         raise NotImplementedError
 
-    def best_depot_location(self, speed):
+    def best_depot_location(self):
         min_time = float('inf')
         best_depot = None
 
         for depot in self.depots:
-            path = self.nearest_neighbour_path(depot, speed)
-            total_time = sum(self.travel_time(path[i], path[i + 1], speed) 
+            path = self.nearest_neighbour_path(depot)
+            total_time = sum(self.travel_time(path[i], path[i + 1]) 
                              for i in range(len(path) - 1))
 
             if total_time < min_time:
