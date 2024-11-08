@@ -11,6 +11,8 @@ if TYPE_CHECKING:
 
 import csv
 
+import warnings
+
 def travel_time(
     distance,
     different_regions,
@@ -22,13 +24,54 @@ def travel_time(
     return travel_time_using
 
 class Location:
-    def __init__(self, name, region, is_depot, x, y):
-        self.name = name
-        self.region = region
-        self.is_depot = is_depot
-        self.x = x
-        self.y = y
+    def __init__(self, name, region, r, theta, depot):
+        if not isinstance(name, str):
+            raise TypeError("The 'name' must be a string.")
+        if not isinstance(region, str):
+            raise TypeError("The 'region' must be a string.")
+        
+        formatted_name = " ".join([word.capitalize() for word in name.split()])
+        formatted_region = " ".join([word.capitalize() for word in region.split()])
+        
+        if name != formatted_name:
+            warnings.warn(f"The 'name' value '{name}' was reformatted to '{formatted_name}'.")
+        if region != formatted_region:
+            warnings.warn(f"The 'region' value '{region}' was reformatted to '{formatted_region}'.")
+
+        self.name = formatted_name
+        self.region = formatted_region
+
+        try:
+            self.r = float(r)
+            self.theta = float(theta)
+        except ValueError:
+            raise TypeError("The 'r' and 'theta' values must be convertible to float.")
+
+        if self.r < 0:
+            raise ValueError("The 'r' value (polar radius) must be non-negative.")
+
+        if not (-3.141592653589793 <= self.theta <= 3.141592653589793):
+            raise ValueError("The 'theta' value must be within the range -π ≤ θ ≤ π.")
+
+        if not isinstance(depot, bool):
+            raise TypeError("The 'depot' value must be a boolean.")
+        
+        self._depot = depot
     
+    @property
+    def depot(self):
+        return self._depot
+
+    @depot.setter
+    def depot(self, value):
+        if not isinstance(value, bool):
+            raise TypeError("The 'depot' value must be a boolean.")
+        self._depot = value
+
+    @property
+    def settlement(self):
+        return not self._depot
+
     def __repr__(self):
         """
         Do not edit this function.
@@ -45,8 +88,14 @@ class Location:
         return f"{self.name} ({'Depot' if self.is_depot else 'Settlement'}) in {self.region}"
 
     def distance_to(self, other):
-        distance_squared = (self.x - other.x)**2 + (self.y - other.y)**2
-        return distance_squared ** 0.5
+        self_x = self.r * (1 - self.theta**2 / 2 + (self.theta**4) / 24)
+        self_y = self.r * (self.theta - self.theta**3 / 6 + (self.theta**5) / 120)
+
+        other_x = other.r * (1 - other.theta**2 / 2 + (other.theta**4) / 24)
+        other_y = other.r * (other.theta - other.theta**3 / 6 + (other.theta**5) / 120)
+
+        distance = ((self_x - other_x)**2 + (self_y - other_y) ** 2) ** 0.5
+        return distance
 
     def __eq__(self, other):
         return (self.name == other.name) and (self.region == other.region)
@@ -55,7 +104,7 @@ class Location:
 class Country:
 
     @classmethod
-    def from_csv(location_information, filepath):
+    def from_csv(cls, filepath):
         locations = []
         with open(filepath, 'r') as file:
             reader = csv.DictReader(file)
@@ -63,10 +112,10 @@ class Country:
                 name = row['location']
                 region = row['region']
                 is_depot = row['depot'].lower() == 'true'
-                x = float(row['x'])
-                y = float(row['y'])
-                locations.append(Location(name, region, is_depot, x, y))
-        return location_information(locations)
+                r = float(row['r'])
+                theta = float(row['theta'])
+                locations.append(Location(name, region, r, theta, is_depot))
+        return cls(locations)
 
     def __init__(self, locations):
         self.locations = locations
@@ -77,8 +126,18 @@ class Country:
         distance = start_location.distance_to(end_location)
         different_regions = start_location.region != end_location.region
         locations_in_dest_region = len([location for location in self.locations if location.region == end_location.region])
-        return travel_time(distance, different_regions, locations_in_dest_region)
+        return travel_time(distance, different_regions, locations_in_dest_region=locations_in_dest_region)
 
+    def fastest_trip_from(
+        self,
+        current_location,
+        potential_locations,
+    ):
+        raise NotImplementedError
+
+    def nn_tour(self, starting_depot):
+        raise NotImplementedError
+    
     def nearest_neighbour_path(self, start_depot):
         path = [start_depot]
         unvisited = list(self.settlements)
@@ -92,16 +151,6 @@ class Country:
 
         path.append(start_depot)
         return path
-
-    def fastest_trip_from(
-        self,
-        current_location,
-        potential_locations,
-    ):
-        raise NotImplementedError
-
-    def nn_tour(self, starting_depot):
-        raise NotImplementedError
 
     def best_depot_location(self):
         min_time = float('inf')
