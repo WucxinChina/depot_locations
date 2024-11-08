@@ -12,6 +12,7 @@ if TYPE_CHECKING:
 import csv
 
 import warnings
+import math
 
 def travel_time(
     distance,
@@ -50,7 +51,7 @@ class Location:
         if self.r < 0:
             raise ValueError("The 'r' value (polar radius) must be non-negative.")
 
-        if not (-3.141592653589793 <= self.theta <= 3.141592653589793):
+        if not (-math.pi <= self.theta <= math.pi):
             raise ValueError("The 'theta' value must be within the range -π ≤ θ ≤ π.")
 
         if not isinstance(depot, bool):
@@ -85,17 +86,17 @@ class Location:
         return self.__str__()
 
     def __str__(self):
-        return f"{self.name} ({'Depot' if self.is_depot else 'Settlement'}) in {self.region}"
+        type_str = "depot" if self._depot else "settlement"
+        r_str = f"{self.r:.2f}".rstrip("0").rstrip(".")
+        theta_over_pi = self.theta / math.pi
+        theta_str = f"{theta_over_pi:.2f}".rstrip("0").rstrip(".")
+
+        return f"{self.name} [{type_str}] in {self.region} @ ({r_str} m, {theta_str} pi)"
 
     def distance_to(self, other):
-        self_x = self.r * (1 - self.theta**2 / 2 + (self.theta**4) / 24)
-        self_y = self.r * (self.theta - self.theta**3 / 6 + (self.theta**5) / 120)
-
-        other_x = other.r * (1 - other.theta**2 / 2 + (other.theta**4) / 24)
-        other_y = other.r * (other.theta - other.theta**3 / 6 + (other.theta**5) / 120)
-
-        distance = ((self_x - other_x)**2 + (self_y - other_y) ** 2) ** 0.5
-        return distance
+        return math.sqrt(
+            self.r**2 + other.r**2 - 2 * self.r * other.r * math.cos(self.theta - other.theta)
+        )
 
     def __eq__(self, other):
         return (self.name == other.name) and (self.region == other.region)
