@@ -5,10 +5,28 @@ import string
 import numpy as np
 
 from country import Country, Location
+import csv
+from pathlib import Path
 
 
-def read_country_data(filepath):
-    raise NotImplementedError
+def read_country_data(file_path: Path) -> Country:
+    locations = []
+
+    with file_path.open('r') as file:
+        reader = csv.DictReader(file)
+        
+        for row in reader:
+            name = row.get("location")
+            region = row.get("region")
+            r = float(row.get("r"))
+            theta = float(row.get("theta"))
+            depot = row.get("depot").strip().lower() == 'true'
+
+            if name and region:
+                location = Location(name=name, region=region, r=r, theta=theta, depot=depot)
+                locations.append(location)
+
+    return Country(locations)
 
 
 def regular_n_gon(number_of_settlements: int) -> Country:

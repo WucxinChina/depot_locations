@@ -103,7 +103,7 @@ def plot_country(
             ax.scatter(
                 data[:, 0],
                 data[:, 1],
-                c=colour,
+                color=colour,
                 marker=marker,
                 label=label,
             )

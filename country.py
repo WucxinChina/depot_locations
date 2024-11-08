@@ -9,8 +9,6 @@ if TYPE_CHECKING:
 
     from matplotlib.figure import Figure
 
-import csv
-
 import warnings
 import math
 
@@ -100,28 +98,43 @@ class Location:
 
     def __eq__(self, other):
         return (self.name == other.name) and (self.region == other.region)
+    
+    def __hash__(self) -> int:
+        return hash(self.name + self.region)
+    
+    def __lt__(self, other):
+        return (self.region, self.name) < (other.region, other.name)
+
+    def __le__(self, other):
+        return (self.region, self.name) <= (other.region, other.name)
+
+    def __gt__(self, other):
+        return (self.region, self.name) > (other.region, other.name)
+
+    def __ge__(self, other):
+        return (self.region, self.name) >= (other.region, other.name)
 
 
 class Country:
+    def __init__(self, list_of_locations: List[Location]):
+        self._all_locations = tuple(list_of_locations)
+    
+    @property
+    def settlements(self):
+        return tuple(location for location in self._all_locations if location.settlement)
 
-    @classmethod
-    def from_csv(cls, filepath):
-        locations = []
-        with open(filepath, 'r') as file:
-            reader = csv.DictReader(file)
-            for row in reader:
-                name = row['location']
-                region = row['region']
-                is_depot = row['depot'].lower() == 'true'
-                r = float(row['r'])
-                theta = float(row['theta'])
-                locations.append(Location(name, region, r, theta, is_depot))
-        return cls(locations)
+    @property
+    def n_settlements(self):
+        return len(self.settlements)
 
-    def __init__(self, locations):
-        self.locations = locations
-        self.depots = [location for location in locations if location.is_depot]
-        self.settlements = [location for location in locations if not location.is_depot]
+    @property
+    def depots(self):
+        return tuple(location for location in self._all_locations if location.depot)
+
+    @property
+    def n_depots(self):
+        return len(self.depots)
+
 
     def travel_time(self, start_location, end_location):
         distance = start_location.distance_to(end_location)
