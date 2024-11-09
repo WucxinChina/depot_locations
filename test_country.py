@@ -19,7 +19,6 @@ riverwood = Location("Riverwood", "Whiterun Hold", 49_877.15654485528,
 -1.1153081421843865, False)
 heartwood_mill = Location("Heartwood Mill", "The Rift", 164_031.25924652288,
 -0.6236682227787959, True)
-bad_name = Location("noT CAPitalised", "Region", 0., 0., False)
 
 print(f"Before changing depot: {heartwood_mill.settlement}")
 heartwood_mill.depot = False
@@ -97,3 +96,9 @@ print(f"Time to complete tour starting in Heartwood Mill: {tour_time:2.2f} h")
 print("The tour path was:")
 for loc in tour_from_heartwood_mill:
     print(f"\t{loc}")
+
+best_depot = skyrim.best_depot_site(display=False)
+print(f"\nThe best depot found was: {best_depot}")
+print("\nWith display=True however, we get information automatically...\n")
+best_depot_again = skyrim.best_depot_site()
+assert best_depot_again == best_depot

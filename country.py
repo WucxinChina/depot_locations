@@ -213,18 +213,27 @@ class Country:
         path.append(start_depot)
         return path
 
-    def best_depot_location(self):
-        min_time = float('inf')
+    def best_depot_site(self, display=True):
+        if not self.depots:
+            raise ValueError("No depots available in the country.")
+
         best_depot = None
+        best_tour = None
+        shortest_time = float('inf')
 
         for depot in self.depots:
-            path = self.nearest_neighbour_path(depot)
-            total_time = sum(self.travel_time(path[i], path[i + 1]) 
-                             for i in range(len(path) - 1))
-
-            if total_time < min_time:
-                min_time = total_time
+            tour, tour_time = self.nn_tour(depot)
+            if tour_time < shortest_time or (tour_time == shortest_time and (depot.name < best_depot.name if best_depot else True)):
                 best_depot = depot
+                best_tour = tour
+                shortest_time = tour_time
+
+        if display:
+            print(f"Best depot: {best_depot}")
+            print("NNA tour is:")
+            for location in best_tour:
+                print(f"\t{location}")
+            print(f"Which will take {shortest_time:.2f} h to complete.")
 
         return best_depot
 
