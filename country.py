@@ -9,6 +9,7 @@ if TYPE_CHECKING:
 
     from matplotlib.figure import Figure
 
+import numpy as np
 import warnings
 import math
 
@@ -49,7 +50,7 @@ class Location:
         if self.r < 0:
             raise ValueError("The 'r' value (polar radius) must be non-negative.")
 
-        if not (-math.pi <= self.theta <= math.pi):
+        if not (-np.pi <= self.theta <= math.pi):
             raise ValueError("The 'theta' value must be within the range -π ≤ θ ≤ π.")
 
         if not isinstance(depot, bool):
@@ -137,20 +138,66 @@ class Country:
 
 
     def travel_time(self, start_location, end_location):
+
+        if start_location not in self._all_locations:
+            raise ValueError(f"Location {start_location} is not in the Country")
+        if end_location not in self._all_locations:
+            raise ValueError(f"Location {end_location} is not in the Country")
+        
         distance = start_location.distance_to(end_location)
         different_regions = start_location.region != end_location.region
-        locations_in_dest_region = len([location for location in self.locations if location.region == end_location.region])
-        return travel_time(distance, different_regions, locations_in_dest_region=locations_in_dest_region)
+        locations_in_dest_region = len([location for location in self._all_locations
+         if location.region == end_location.region])
+        
+        return travel_time(distance, different_regions, locations_in_dest_region)
 
-    def fastest_trip_from(
-        self,
-        current_location,
-        potential_locations,
-    ):
-        raise NotImplementedError
+    def fastest_trip_from(self, current_location, potential_locations=None):
+        if potential_locations is None:
+            potential_locations = list(self.settlements)
 
+        resolved_locations = []
+        for loc in potential_locations:
+            if isinstance(loc, int):
+                if 0 <= loc < len(self.settlements):
+                    resolved_locations.append(self.settlements[loc])
+                else:
+                    raise IndexError(f"Index {loc} is out of range for settlements.")
+            elif isinstance(loc, Location):
+                resolved_locations.append(loc)
+
+        if not resolved_locations:
+            return None, None
+
+        travel_times = []
+        for loc in resolved_locations:
+            time = self.travel_time(current_location, loc)
+            travel_times.append((loc, time))
+
+        travel_times.sort(key=lambda x: (x[1], x[0].name, x[0].region))
+
+        return travel_times[0]
+    
     def nn_tour(self, starting_depot):
-        raise NotImplementedError
+        if starting_depot not in self.depots:
+            raise ValueError(f"Starting location {starting_depot} is not a depot in the Country")
+
+        tour = [starting_depot]
+        unvisited = list(self.settlements)
+        current_location = starting_depot
+        total_time = 0
+
+        while unvisited:
+            next_location, travel_time = self.fastest_trip_from(current_location, unvisited)
+            tour.append(next_location)
+            total_time += travel_time
+            unvisited.remove(next_location)
+            current_location = next_location
+
+        return_time = self.travel_time(current_location, starting_depot)
+        tour.append(starting_depot)
+        total_time += return_time
+
+        return tour, total_time
     
     def nearest_neighbour_path(self, start_depot):
         path = [start_depot]

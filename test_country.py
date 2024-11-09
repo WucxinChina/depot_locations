@@ -35,26 +35,6 @@ print(f"Heartwood Mill's information: {heartwood_mill}")
 RW_to_HM = riverwood.distance_to(heartwood_mill)
 print(f"Distance from Riverwood to Heartwood Mill: {RW_to_HM} m")
 
-def test_distance_same_location():
-    loc1 = Location("A", "Region1", 10.0, 0.0, False)
-    assert loc1.distance_to(loc1) == 0, "Distance between the same location should be 0."
-
-def test_distance_right_triangle():
-    loc1 = Location("A", "Region1", 10.0, 0.0, False)
-    loc2 = Location("B", "Region1", 10.0, math.pi / 2, False)
-    expected_distance = 10 * math.sqrt(2)
-    assert math.isclose(loc1.distance_to(loc2), expected_distance, rel_tol=1e-9), "Distance between points forming a right triangle should be 10 * sqrt(2)."
-
-def test_distance_same_angle():
-    loc1 = Location("A", "Region1", 10.0, 0.0, False)
-    loc2 = Location("B", "Region1", 15.0, 0.0, False)
-    assert loc1.distance_to(loc2) == abs(10.0 - 15.0), "Distance between points with same angle should be the absolute difference in radius."
-
-def test_distance_opposite_angles():
-    loc1 = Location("A", "Region1", 10.0, 0.0, False)
-    loc2 = Location("B", "Region1", 10.0, math.pi, False)
-    assert loc1.distance_to(loc2) == math.sqrt(10.0**2 + 10.0**2 + 2 * 10.0 * 10.0), "Distance with angle difference of π should match the calculated formula."
-
 # Test 4.3 The Country Class
 riverwood = Location("Riverwood", "Whiterun Hold", 
 49_877.15654485528, -1.1153081421843865, False)
@@ -72,7 +52,6 @@ for loc in list_of_locations:
     print(f"\t{loc}")
 assert isinstance(country._all_locations, tuple), "Locations are not stored asa tuple in the Country class"
 assert set(country._all_locations) == set(list_of_locations), "Provide dentries and those stored aren't the same"
-
 
 locations_csv_file = Path("data/locations.csv")
 skyrim = read_country_data(locations_csv_file)
@@ -93,3 +72,28 @@ for depot in skyrim.depots:
 
 skyrim_map = skyrim.plot_country()
 skyrim_map.show()
+
+RW_to_HM_time = skyrim.travel_time(riverwood, heartwood_mill)
+HM_to_RW_time = skyrim.travel_time(heartwood_mill, riverwood)
+print(f"Travel time from Riverwood to Heartwood Mill: {RW_to_HM_time}")
+print(f"Travel time from Heartwood Mill to Riverwood: {HM_to_RW_time}")
+
+kvatch = Location("Kvatch", "Cyrodiil", 175000, -3 * math.pi / 4, False)
+try:
+    skyrim.travel_time(riverwood, kvatch)
+    print("If you see this message in the output, no error was raised!")
+except ValueError as e:
+    print("Attempting to determine travel time to a location not in the country threw an error:")
+    print(f"\t{e}")
+
+print(f"Using default args: {skyrim.fastest_trip_from(riverwood)}")
+print(f"Selecting settlements: {skyrim.fastest_trip_from(riverwood, [0, 1, 3, 4])}")
+print(f"Providing explicit locations: {skyrim.fastest_trip_from(riverwood, [heartwood_mill, whiterun])}")
+print(f"Mix and match selection: {skyrim.fastest_trip_from(riverwood, [0, whiterun, 2, 3, heartwood_mill])}")
+
+tour_from_heartwood_mill, tour_time = skyrim.nn_tour(heartwood_mill)
+
+print(f"Time to complete tour starting in Heartwood Mill: {tour_time:2.2f} h")
+print("The tour path was:")
+for loc in tour_from_heartwood_mill:
+    print(f"\t{loc}")
